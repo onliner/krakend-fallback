@@ -9,7 +9,7 @@ import (
 
 func TestNewConfig_ConfigNotFound(t *testing.T) {
 	_, err := NewConfig(map[string]interface{}{})
-	assert.Error(t, err, "configuration not found")
+	assert.EqualError(t, err, "configuration not found")
 }
 
 func TestNewConfig_DecodeOK(t *testing.T) {

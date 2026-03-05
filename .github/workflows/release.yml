@@ -27,7 +27,7 @@ jobs:
       - name: Build project
         run: |
           docker run --rm -v "$PWD:/app" -w /app krakend/builder:2.13.1 go build -buildmode=plugin -o krakend-fallback.so .
-          docker run --rm -v "$PWD/krakend-fallback.so:/app/krakend-fallback.so" -w /app krakend:2.13.1 krakend test-plugin -sc krakend-fallback.so
+          docker run --rm -v "$PWD/krakend-fallback.so:/app/krakend-fallback.so" -w /app krakend:2.13.1 krakend test-plugin -s krakend-fallback.so
           zip ./krakend-fallback.zip ./krakend-fallback.so
 
       - name: Bump version and push tag

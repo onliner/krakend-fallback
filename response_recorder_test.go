@@ -1,24 +1,11 @@
 package main
 
 import (
-	"io"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func readBody(t *testing.T, rc io.ReadCloser) string {
-	t.Helper()
-	defer func(rc io.ReadCloser) {
-		err := rc.Close()
-		assert.NoError(t, err)
-	}(rc)
-	b, err := io.ReadAll(rc)
-	assert.NoError(t, err)
-
-	return string(b)
-}
 
 func TestResponseRecorder_DefaultStatusIs200(t *testing.T) {
 	rr := NewResponseRecorder()
@@ -28,7 +15,7 @@ func TestResponseRecorder_DefaultStatusIs200(t *testing.T) {
 	assert.Zero(t, resp.ContentLength)
 	assert.NotNil(t, resp.Body)
 
-	body := readBody(t, resp.Body)
+	body := readString(t, resp.Body)
 	assert.Empty(t, body)
 }
 
@@ -64,7 +51,7 @@ func TestResponseRecorder_BodyAndContentLength(t *testing.T) {
 	resp := rr.Result()
 	assert.Equal(t, int64(len("hello")), resp.ContentLength)
 
-	body := readBody(t, resp.Body)
+	body := readString(t, resp.Body)
 	assert.Equal(t, "hello", body)
 }
 
@@ -73,7 +60,7 @@ func TestResponseRecorder_ResultBodyStartsFromBeginning(t *testing.T) {
 	_, _ = rr.Write([]byte(`{"a":1}`))
 
 	resp := rr.Result()
-	body := readBody(t, resp.Body)
+	body := readString(t, resp.Body)
 
 	assert.Equal(t, `{"a":1}`, body)
 }

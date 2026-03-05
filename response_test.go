@@ -2,26 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func readBytes(t *testing.T, rc io.ReadCloser) []byte {
-	t.Helper()
-	if rc == nil {
-		return nil
-	}
-	defer func(rc io.ReadCloser) {
-		err := rc.Close()
-		assert.NoError(t, err)
-	}(rc)
-	b, err := io.ReadAll(rc)
-	assert.NoError(t, err)
-	return b
-}
 
 func TestIsSuccess(t *testing.T) {
 	cases := []struct {

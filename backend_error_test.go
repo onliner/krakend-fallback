@@ -1,22 +1,10 @@
 package main
 
 import (
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func readString(t *testing.T, rc io.ReadCloser) string {
-	t.Helper()
-	defer func(rc io.ReadCloser) {
-		err := rc.Close()
-		assert.NoError(t, err)
-	}(rc)
-	b, err := io.ReadAll(rc)
-	assert.NoError(t, err)
-	return string(b)
-}
 
 func TestFindBackendError_NoKeys(t *testing.T) {
 	resp, ok := FindBackendError(map[string]interface{}{

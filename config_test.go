@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +9,7 @@ import (
 
 func TestNewConfig_ConfigNotFound(t *testing.T) {
 	_, err := NewConfig(map[string]interface{}{})
-	assert.Error(t, errors.New("configuration not found"), err)
+	assert.Error(t, err, "configuration not found")
 }
 
 func TestNewConfig_DecodeOK(t *testing.T) {

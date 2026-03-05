@@ -9,7 +9,7 @@ import (
 func main() {}
 
 var HandlerRegisterer = registerer(Namespace)
-var logger Logger = nil
+var logger Logger = noopLogger{}
 
 type registerer string
 

@@ -45,6 +45,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	for _, k := range route.Required {
 		if _, exists := body[k]; !exists {
+			h.logger.Debug(fmt.Sprintf("[PLUGIN: %s] required field %q missing in %s", Namespace, k, req.URL.Path))
 			errResp, ok := FindBackendError(body)
 			if !ok {
 				errResp = NewServerError()

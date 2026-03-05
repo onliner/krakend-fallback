@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -119,6 +120,34 @@ func TestHandler_JSONSuccess_AddsDefaults(t *testing.T) {
 	assert.True(t, ok)
 }
 
+func TestHandler_JSONSuccess_PreservesExistingValues(t *testing.T) {
+	cfg := &Config{
+		Routes: []Route{
+			{
+				Path:     "/products/{product}/positions",
+				Required: []string{"product"},
+				Default: map[string]interface{}{
+					"positions": []interface{}{},
+					"shops":     nil,
+				},
+			},
+		},
+	}
+
+	next := newNext(200, "application/json; charset=utf-8", `{"product":{"id":1},"positions":[1,2,3]}`)
+	h := NewHandler(cfg, next, noopLogger{})
+
+	rr := doRequest(t, h, "GET", "/products/iphonex64s/positions")
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	out := decodeJSON(t, rr.Body.Bytes())
+
+	assert.Equal(t, []interface{}{float64(1), float64(2), float64(3)}, out["positions"])
+	_, ok := out["shops"]
+	assert.True(t, ok)
+}
+
 func TestHandler_JSONSuccess_MissingRequired_ReturnsServerError(t *testing.T) {
 	cfg := &Config{
 		Routes: []Route{
@@ -183,4 +212,71 @@ func TestHandler_MissingRequired_ReturnsFirstBackendError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Equal(t, "first", rr.Body.String())
 	assert.Equal(t, "text/plain", rr.Header().Get("Content-Type"))
+}
+
+func TestHandler_ServeHTTP_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
+	cfg := &Config{
+		Routes: []Route{
+			{
+				Path:     "/products/{product}/positions",
+				Required: []string{"product"},
+				Default: map[string]interface{}{
+					"positions": []interface{}{},
+					"shops":     nil,
+				},
+			},
+		},
+	}
+
+	next := newNext(200, "application/json; charset=utf-8", `{"product":{"id":1}}`)
+	h := NewHandler(cfg, next, noopLogger{})
+
+	const workers = 64
+
+	var wg sync.WaitGroup
+	errs := make(chan string, workers)
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			req := httptest.NewRequest(http.MethodGet, "http://example.com/products/iphonex64s/positions", nil)
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, req)
+
+			if rr.Code != http.StatusOK {
+				errs <- "unexpected status code"
+				return
+			}
+
+			var out map[string]interface{}
+			if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
+				errs <- "invalid json response"
+				return
+			}
+
+			if _, ok := out["product"]; !ok {
+				errs <- "missing required key: product"
+				return
+			}
+			if _, ok := out["positions"]; !ok {
+				errs <- "missing default key: positions"
+				return
+			}
+			if _, ok := out["shops"]; !ok {
+				errs <- "missing default key: shops"
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		assert.Fail(t, err)
+	}
 }

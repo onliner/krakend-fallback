@@ -30,7 +30,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	resp := rec.Result()
 
 	if !IsSuccess(resp) || !IsJSON(resp) {
-		h.write(w, resp)
+		h.write(w, NewJsonResponse(http.StatusOK, resp.Header, route.Default))
 		return
 	}
 
